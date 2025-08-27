@@ -1,5 +1,7 @@
 # BYOVD-DriverKiller
 
+This README (EN) may contain errors !
+
 ⚠️ **Disclaimer**: This project is strictly educational and demonstrative. It is not intended for malicious use.  
 The goal is to learn reverse engineering methodology and the exploitation steps of a Windows driver.
 
