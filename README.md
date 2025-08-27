@@ -1,16 +1,18 @@
-# BYOVD-Killer
+# BYOVD-DriverKiller
 
 ⚠️ **Avertissement** : Ce projet est strictement éducatif et démonstratif. Il n’a pas vocation à être utilisé dans un contexte malveillant. L’objectif est d’apprendre la méthodologie de reverse engineering et les étapes d’exploitation d’un driver Windows.
 
 ---
-Ce projet explique la démarche que j’ai suivie pour résoudre l’exercice proposé par d1rk(SaadAhla) [https://github.com/SaadAhla](https://github.com/SaadAhla/Killer-Exercice), consistant à effectuer du reverse engineering et de l’exploitation sur un driver légitime, signé, et non présent dans les blocklists (HVCI, LOLBIN...).
-Un programme C permettant de terminer nimporte quel processus actif sur le système via ce Kernel-mode Driver est disponible, je détaille son fonctionnement un peu plus bas.  
+J'explique ici la démarche que j’ai suivie pour résoudre l’exercice proposé par d1rk(SaadAhla) [https://github.com/SaadAhla](https://github.com/SaadAhla/Killer-Exercice), consistant à effectuer du reverse engineering et de l’exploitation sur un driver légitime, signé, et non présent dans les blocklists (HVCI, LOLBIN...).
+Un programme C permettant de terminer n'importe quel processus actif sur le système via ce Kernel-mode Driver est disponible, je détaille son fonctionnement un peu plus bas.  
 
-📃 **Usage** : DriverKiller.exe <processus.exe> [-d]
+![POC-BYOD](https://github.com/user-attachments/assets/ae75c869-5fcd-478d-bbd1-cbbb44acfc16)
+
+📃 **Usage** : DriverKiller.exe <nom_processus.exe> [-d]
 
 Option -d : Permet de supprimer le service et le Driver du système après l'exploitation.
 
-Le testsigning mode doit etre activé sur la machine cible car le certificat du Driver à expiré.
+Le testsigning mode doit être activé sur la machine cible car le certificat du Driver a expiré.
 
 ---
 
@@ -20,11 +22,11 @@ L’exercice fournit un fichier .sys, nommé avec son hash SHA-256.
 La première étape consiste à ouvrir ce fichier avec IDA.<br>
 <sub>*IDA est disponible gratuitement. Il suffit de se rendre sur le site d’Hex-Rays afin de générer une licence et de télécharger le logiciel.*</sub>
 
-On commence par lister l’IAT (Import Address Table) du driver et rechercher l’appel à l’API qui nous intéresse : <code>ZwTerminateProcess</code>.
+On commence par lister l’IAT (Import Address Table) du Driver et rechercher l’appel à l’API qui nous intéresse : <code>ZwTerminateProcess</code>.
 
 <img width="1920" height="840" alt="screen1-git" src="https://github.com/user-attachments/assets/eed58ee0-3eb2-4685-9e4d-44dc8aa13d3d" />
 
-En double-cliquant sur <code>ZwTerminateProcess</code>, IDA nous redirige vers le code compilé de cette fonction. En sélectionnant l’entrée puis en affichant les cross-references, on obtient la liste des fonctions du driver qui l’appellent.
+En double-cliquant sur <code>ZwTerminateProcess</code>, IDA nous redirige vers le code compilé de cette fonction. En sélectionnant l’entrée puis en affichant les cross-references, on obtient la liste des fonctions du Driver qui l’appellent.
 
 <img width="1920" height="869" alt="screen2-git" src="https://github.com/user-attachments/assets/7b60abe1-16ae-4905-b948-a27618d57930" />
 
@@ -36,7 +38,7 @@ Le code décompilé révèle les appels à <code>ZwOpenProcess</code> (qui ouvre
 
 En consultant la documentation de <code>ZwOpenProcess</code> (https://learn.microsoft.com/fr-fr/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwopenprocess), on constate que le paramètre <code>ClientID</code> correspond à un pointeur indiquant le PID du processus visé.
 
-Sur la ligne au dessus, <code>ClientId.UniqueProcess</code> est initialisé avec la variable <code>v22</code>. Cette dernière est définie juste au-dessus : <pre>v22 = (void )((_QWORD *)i + 10);</pre>
+Sur la ligne au-dessus, <code>ClientId.UniqueProcess</code> est initialisé avec la variable <code>v22</code>. Cette dernière est définie juste au-dessus : <pre>v22 = (void )((_QWORD *)i + 10);</pre>
 
 Pour comprendre cette affectation, il faut identifier la variable <code>i</code> et le champ +10.<br>
 
@@ -102,7 +104,7 @@ Calcul de l’offset de <code>UniqueProcessId</code> :
 Le membre <code>UniqueProcessId</code> est donc à l’offset 0x50 (80 décimal).
 
 En regardant l'affectation de notre variable <code>v22</code>, on constate que <code>i</code> est casté en pointeur <code>QWORD</code> (8 octets) <pre>v22 = (void *)*((_QWORD *)i + 10);</pre>
-Donc <code>v22</code> correspond l'adresse de <code>i</code> + 10 * 8 = 80 octets. Cette variable contient donc bien le PID recuperé de la structure SYSTEM_PROCESS_INFORMATION.
+Donc <code>v22</code> correspond l'adresse de <code>i</code> + 10 * 8 = 80 octets. Cette variable contient donc bien le PID récupéré de la structure SYSTEM_PROCESS_INFORMATION.
 
 Pour savoir quel PID sera passé à <code>ZwTerminateProcess</code>, il faut analyser la condition qui entoure cette affectation.
 
@@ -131,7 +133,7 @@ Avant d’analyser ce code décompilé, je vais chercher les références de la 
 
 <img width="1920" height="872" alt="screen§-git" src="https://github.com/user-attachments/assets/48f2645d-5762-4a6d-b5d2-b75c01552b90" />
 
-On constate que <code>ZwTerminateProcessCallerCaller</code> est appelée par la fonction <code>sub_14130</code> (renommée <code>ZwTerminateProcessCallerCallerCaller</code> ...heuresement pour nous, c'est la dernière avant le point d'entrée 😅).
+On constate que <code>ZwTerminateProcessCallerCaller</code> est appelée par la fonction <code>sub_14130</code> (renommée <code>ZwTerminateProcessCallerCallerCaller</code> ...heureusement pour nous, c'est la dernière avant le point d'entrée 😅).
 
 <img width="1920" height="875" alt="screen7-git" src="https://github.com/user-attachments/assets/bd16362a-1ee1-4152-9e57-4a461983df84" />
 
@@ -154,11 +156,11 @@ En revenant sur <code>ZwTerminateProcessCallerCaller</code>, on remarque que son
 
 Juste au dessus de l'appel à <code>ZwTerminateProcessCaller</code> on trouve le IOCTL code : <code>-2106392528</code> (en hexadécimal : <code>0x82730030</code>).<br>
 
-Grâce à ces informations, on peut en déduire que pour exploiter ce driver, il faut envoyer un appel API <code>DeviceIoControl</code> au Driver avec le nom du processus à terminer dans le SystemBuffer.
+Grâce à ces informations, on peut en déduire que pour exploiter ce Driver, il faut envoyer un appel API <code>DeviceIoControl</code> au Driver avec le nom du processus à terminer dans le SystemBuffer.
 
 ---
 
-🔷 **Informations récuperées grâce au reverse engineering** :
+🔷 **Informations récupérées grâce au reverse engineering** :
 
 - IOCTLCode : <code>0x82730030</code>
 - Device Name : <code>Viragtlt</code>
@@ -169,16 +171,16 @@ Grâce à ces informations, on peut en déduire que pour exploiter ce driver, il
 
 **Partie 2 - Exploitation**
 
-Pour exploiter ce Driver (si il est installé et actif sur la machine cible), il est nécessaire d'ouvrir un handle vers celui-ci, puis de faire un appel API DeviceIoControl avec un Buffer contenant le nom du processus que l'on souhaite terminer.<br>
-Pour cet exercice, j'ai développer un projet C qui :
+Pour exploiter ce Driver (s'il est installé et actif sur la machine cible), il est nécessaire d'ouvrir un handle vers celui-ci, puis de faire un appel API DeviceIoControl avec un Buffer contenant le nom du processus que l'on souhaite terminer.<br>
+Pour cet exercice, j'ai développé un projet C qui :
 - Vérifie si le Driver est présent et actif sur le système (avec un nom de service précis) :
      - Si oui, le programme exploite le Driver avec un appel API DeviceIoControl.
-     - Si non, le programme extrait le driver de ses ressources, le déploie sur le bureau de l'utilisateur, créer un service actif puis exploite le Driver avec un appel API DeviceIoControl. (Nécessite les drois admin car une création de service est effectuée.) 
+     - Si non, le programme extrait le driver de ses ressources, le déploie sur le bureau de l'utilisateur, crée un service actif puis exploite le Driver avec un appel API DeviceIoControl. (Nécessite les droits admin car une création de service est effectuée.) 
 - Si le Driver est présent sur le système mais que le service n'est pas démarré, le programme essaye de démarrer le service puis l'exploite avec un appel API DeviceIoControl.
 
 J'ai également ajouté une option <code>-d</code> qui permet de supprimer le service et le Driver du système après l'exploitation.
 
-Voici le comportement du programme C dans son cycle d'execution complet :
+Voici le comportement du programme C dans son cycle d'exécution complet :
 
 <img width="1105" height="334" alt="image" src="https://github.com/user-attachments/assets/453c750a-53b1-4687-b2d0-ab946d599f2c" />
 
@@ -187,10 +189,13 @@ Voici le comportement du programme C dans son cycle d'execution complet :
 **Evasion AV/EDR**
 
 Dans ce cas, DriverKiller.exe n’est pas détecté par Microsoft Defender, ni en statique ni en dynamique.
-L’évasion n’a pas vraiment de sens ici car le driver exploité possède un certificat expiré, son utilisation en conditions réelles est donc difficilement envisageable.
+L’évasion n’a pas vraiment de sens ici car le Driver exploité possède un certificat expiré, son utilisation en conditions réelles est donc difficilement envisageable.
 Mais pour une meilleure furtivité, on aurait pu implémenter :
 
 - Le masquage de certains appels API de la table IAT grâce à des implémentations personnalisées de GetProcAddress et GetModuleHandle
 - Un rapprochement du Kernel pour l’exécution des appels API (Direct/Indirect Syscalls)
 - Des techniques Anti-VM / Anti-Debug
 
+---
+
+⚠️ Ce projet est réalisé dans un cadre d’apprentissage. Il peut contenir des imprécisions ou des erreurs. Toute suggestion, correction ou discussion est la bienvenue ! 😃
