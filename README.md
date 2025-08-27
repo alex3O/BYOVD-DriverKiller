@@ -199,3 +199,4 @@ Mais pour une meilleure furtivité, on aurait pu implémenter :
 ---
 
 ⚠️ Ce projet est réalisé dans un cadre d’apprentissage. Il peut contenir des imprécisions ou des erreurs. Toute suggestion, correction ou discussion est la bienvenue ! 😃
+Merci à d1rk(SaadAhla) : https://github.com/SaadAhla !
