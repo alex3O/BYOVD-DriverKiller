@@ -24,15 +24,15 @@ La première étape consiste à ouvrir ce fichier avec IDA.<br>
 
 On commence par lister l’IAT (Import Address Table) du Driver et rechercher l’appel à l’API qui nous intéresse : <code>ZwTerminateProcess</code>.
 
-<img width="1920" height="840" alt="screen1-git" src="https://github.com/user-attachments/assets/eed58ee0-3eb2-4685-9e4d-44dc8aa13d3d" />
+<img width="1920" height="840" alt="screen1-git" src="https://github.com/user-attachments/assets/6f17b8c1-2588-4f41-b7e4-664ac093f3e4" />
 
 En double-cliquant sur <code>ZwTerminateProcess</code>, IDA nous redirige vers le code compilé de cette fonction. En sélectionnant l’entrée puis en affichant les cross-references, on obtient la liste des fonctions du Driver qui l’appellent.
 
-<img width="1920" height="869" alt="screen2-git" src="https://github.com/user-attachments/assets/7b60abe1-16ae-4905-b948-a27618d57930" />
+<img width="1920" height="869" alt="screen2-git" src="https://github.com/user-attachments/assets/73d8f1af-44f0-4993-80ac-9238af66d457" />
 
 On observe que c’est la fonction <code>sub_12EF4</code>, à l’offset <code>1CE</code>, qui utilise <code>ZwTerminateProcess</code>. Après un double-clic, IDA affiche son code compilé.<br>
 
-<img width="1920" height="874" alt="screen11-git" src="https://github.com/user-attachments/assets/10065069-9310-467b-bfaf-0e0b464a04e2" />
+<img width="1920" height="874" alt="screen11-git" src="https://github.com/user-attachments/assets/ac7e53ef-94c8-4675-ba57-e62ff02b1114" />
 
 Le code décompilé révèle les appels à <code>ZwOpenProcess</code> (qui ouvre un handle vers le processus cible) et à <code>ZwTerminateProcess</code> (qui termine le processus via ce handle).
 
@@ -42,7 +42,7 @@ Sur la ligne au-dessus, <code>ClientId.UniqueProcess</code> est initialisé avec
 
 Pour comprendre cette affectation, il faut identifier la variable <code>i</code> et le champ +10.<br>
 
-<img width="1920" height="870" alt="screen3-git" src="https://github.com/user-attachments/assets/23d3c909-696f-4831-9d83-4e0c6c7c9181" />
+<img width="1920" height="870" alt="screen3-git" src="https://github.com/user-attachments/assets/d5e89199-ae7a-4107-ab9a-54a977050352" />
 
 Plus haut dans cette fonction, on observe un appel à <code>ZwQuerySystemInformation</code> avec le paramètre <code>SYSTEM_PROCESS_INFORMATION</code>. On comprend également que <code>i</code> est l’itérateur sur les entrées de cette structure avec la variable <code>v6</code>.</br>
 
@@ -108,7 +108,7 @@ Donc <code>v22</code> correspond l'adresse de <code>i</code> + 10 * 8 = 80 octet
 
 Pour savoir quel PID sera passé à <code>ZwTerminateProcess</code>, il faut analyser la condition qui entoure cette affectation.
 
-<img width="1920" height="870" alt="screen4-git" src="https://github.com/user-attachments/assets/fdcff7ba-b2e1-4a87-b713-44ef2b5a66f9" />
+<img width="1920" height="870" alt="screen4-git" src="https://github.com/user-attachments/assets/5510517c-ac61-48ce-94aa-60aab4f52f60" />
 
 On constate que le nom de l’image du processus est d’abord récupéré : <pre>v9 = (wchar_t *)*((_QWORD *)i + 8);</pre>
 Car <code>v9</code> = adresse de <code>i</code> + 8 × 8 = 64 octets. Cela correspond au <code>Buffer</code> du membre <code>ImageName</code>, puisque ce membre se trouve à l’offset 56 + 2 (USHORT) + 2 (USHORT) + 4 (padding) = 64
@@ -123,36 +123,36 @@ v18 = strupr(String);
 C’est donc le paramètre <code>a2</code> qui est censé contenir le nom du processus à terminer via <code>ZwTerminateProcess</code>.
 On remarque que <code>a2</code> est un paramètre de la fonction <code>sub_12EF4</code>. Pour aller plus loin, il faut examiner les références de cette fonction (je l’ai renommée <code>ZwTerminateProcessCaller</code> pour une meilleure lisibilité).
 
-<img width="1920" height="872" alt="screen5-git" src="https://github.com/user-attachments/assets/7c12b5f5-3f13-4e19-81a9-eaa8cc482360" />
+<img width="1920" height="872" alt="screen5-git" src="https://github.com/user-attachments/assets/eada954b-d339-4a46-8362-a38ffde8f5d7" />
 
 On constate que <code>ZwTerminateProcessCaller</code> est appelée par la fonction <code>sub_13624</code> à l'offset <code>61A</code>.
 
-<img width="1920" height="871" alt="screen6-git" src="https://github.com/user-attachments/assets/9d909228-f84a-46d7-b23a-4b19dfa76bd5" />
+<img width="1920" height="871" alt="screen6-git" src="https://github.com/user-attachments/assets/f514c732-538d-4364-81be-15ce150bcd1c" />
 
 Avant d’analyser ce code décompilé, je vais chercher les références de la fonction <code>sub_13624</code> (renommée <code>ZwTerminateProcessCallerCaller</code>) afin de m’assurer que ce code est bien utilisé après un appel API à <code>DeviceIoControl</code> depuis le UserMode.
 
-<img width="1920" height="872" alt="screen§-git" src="https://github.com/user-attachments/assets/48f2645d-5762-4a6d-b5d2-b75c01552b90" />
+<img width="1920" height="872" alt="screen§-git" src="https://github.com/user-attachments/assets/8cce90f7-a0cb-46fb-bfcc-5ef39f1afc2a" />
 
 On constate que <code>ZwTerminateProcessCallerCaller</code> est appelée par la fonction <code>sub_14130</code> (renommée <code>ZwTerminateProcessCallerCallerCaller</code> ...heureusement pour nous, c'est la dernière avant le point d'entrée 😅).
 
-<img width="1920" height="875" alt="screen7-git" src="https://github.com/user-attachments/assets/bd16362a-1ee1-4152-9e57-4a461983df84" />
+<img width="1920" height="875" alt="screen7-git" src="https://github.com/user-attachments/assets/4806434d-d3d5-474d-ad6a-60480806d946" />
 
 On constate que <code>ZwTerminateProcessCallerCallerCaller</code> est appelée par la fonction <code>sub_1A4A8</code> à l'offset <code>306</code>.
 
-<img width="1920" height="875" alt="screen8-git" src="https://github.com/user-attachments/assets/319e1de2-c858-48c0-a09c-cf67b9151f0f" />
+<img width="1920" height="875" alt="screen8-git" src="https://github.com/user-attachments/assets/f463ee14-b290-4d16-ac18-9902b175a3fb" />
 
 On trouve l'assignation de la fonction <code>ZwTerminateProcessCallerCallerCaller</code> : <pre>memset64(DriverObject->MajorFunction, (unsigned __int64)ZwTerminateProcessCallerCallerCaller, 0x1Cu);</pre>
 Ce qui signifie que cette fonction est assignée à toutes les entrées de la table MajorFunction (0x1B = 27, et il existe 28 IRP majeures).
 
-<img width="1920" height="869" alt="screen9-git" src="https://github.com/user-attachments/assets/10aa30d2-5850-49d7-8cb5-07165158ddce" />
+<img width="1920" height="869" alt="screen9-git" src="https://github.com/user-attachments/assets/bfd21b4c-a0c8-43f6-8305-73d52e0859c8" />
 
 Avant de revenir à la fonction <code>sub_13624</code> (alias <code>ZwTerminateProcessCallerCaller</code>), on récupère le Symbolic Name et le Device Name (identiques ici) : <code>Viragtlt</code>.
 
-<img width="1920" height="870" alt="screen12-git" src="https://github.com/user-attachments/assets/9e0615cb-aadd-40ce-b940-e20d60285013" />
+<img width="1920" height="870" alt="screen12-git" src="https://github.com/user-attachments/assets/98b7ff4e-85d6-4592-96fd-05c4be78e3fb" />
 
 En revenant sur <code>ZwTerminateProcessCallerCaller</code>, on remarque que son deuxième paramètre (donc <code>a2</code>) correspond à <code>MasterIrp->AssociatedIrp.SystemBuffer</code>.<br>
 
-<img width="1920" height="870" alt="screen13-git" src="https://github.com/user-attachments/assets/620a2de4-9806-4065-9ce2-2467da896202" />
+<img width="1920" height="870" alt="screen13-git" src="https://github.com/user-attachments/assets/f3c29457-7677-476a-be51-5936910a7b81" />
 
 Juste au dessus de l'appel à <code>ZwTerminateProcessCaller</code> on trouve le IOCTL code : <code>-2106392528</code> (en hexadécimal : <code>0x82730030</code>).<br>
 
@@ -182,7 +182,7 @@ J'ai également ajouté une option <code>-d</code> qui permet de supprimer le se
 
 Voici le comportement du programme C dans son cycle d'exécution complet :
 
-<img width="1105" height="334" alt="image" src="https://github.com/user-attachments/assets/453c750a-53b1-4687-b2d0-ab946d599f2c" />
+<img width="1105" height="334" alt="git" src="https://github.com/user-attachments/assets/3cb6a57e-45a1-4607-b7f1-fe1dcb5ddb27" />
 
 ---
 
