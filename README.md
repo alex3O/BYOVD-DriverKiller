@@ -6,7 +6,7 @@
 J'explique ici la démarche que j’ai suivie pour résoudre l’exercice proposé par d1rk(SaadAhla) [https://github.com/SaadAhla](https://github.com/SaadAhla/Killer-Exercice), consistant à effectuer du reverse engineering et de l’exploitation sur un driver légitime, signé, et non présent dans les blocklists (HVCI, LOLBIN...).
 Un programme C permettant de terminer n'importe quel processus actif sur le système via ce Kernel-mode Driver est disponible, je détaille son fonctionnement un peu plus bas.  
 
-![POC-BYOD](https://github.com/user-attachments/assets/ae75c869-5fcd-478d-bbd1-cbbb44acfc16)
+![POC-BYOD](https://github.com/user-attachments/assets/0d92f128-21fc-43ab-bc8b-6219fdc9e61e)
 
 📃 **Usage** : DriverKiller.exe <nom_processus.exe> [-d]
 
