@@ -196,7 +196,7 @@ Mais pour une meilleure furtivité, on aurait pu implémenter :
 - Un rapprochement du Kernel pour l’exécution des appels API (Direct/Indirect Syscalls)
 - Des techniques Anti-VM / Anti-Debug
 
-29/08/2025 :
+Détection sur le driver au 29/08/2025 (résultat déjà existant, je n'ai rien soumis sur VirusTotal pour des raisons évidentes) :
 
 <img width="1359" height="1227" alt="image" src="https://github.com/user-attachments/assets/de114a60-2cc2-4d5a-b5cc-c9eb1b19a877" />
 
