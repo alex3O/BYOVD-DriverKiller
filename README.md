@@ -50,7 +50,8 @@ D’après la documentation de <code>ZwQuerySystemInformation</code> : (https://
 
 La structure <code>SYSTEM_PROCESS_INFORMATION</code> est décrite ici : https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation
 
-<pre>typedef struct _SYSTEM_PROCESS_INFORMATION {
+```c
+typedef struct _SYSTEM_PROCESS_INFORMATION {
     ULONG NextEntryOffset;
     ULONG NumberOfThreads;
     BYTE Reserved1[48];
@@ -74,7 +75,8 @@ La structure <code>SYSTEM_PROCESS_INFORMATION</code> est décrite ici : https://
     SIZE_T PeakPagefileUsage;
     SIZE_T PrivatePageCount;
     LARGE_INTEGER Reserved7[6];
-} SYSTEM_PROCESS_INFORMATION;</pre>
+} SYSTEM_PROCESS_INFORMATION;
+```
 
 Rappel : tailles de certains types sur Windows x64
 
